@@ -1,33 +1,27 @@
 using UnityEngine;
 
-[RequireComponent(typeof(GravityBody))]
 public class GravityController : MonoBehaviour
 {
-    private GravityBody gravityBody;
-
-    void Start()
-    {
-        gravityBody = GetComponent<GravityBody>();
-    }
-
     void Update()
     {
-        // 矢印キー入力で重力方向を変更
+        if (GravityManager.Instance == null) return;
+
+        // 矢印キー入力で全体重力を変更
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            gravityBody.SetGravityDirection(Vector3.down); // 下（標準）
+            GravityManager.Instance.ChangeGravity(Vector3.down);
         }
         else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            gravityBody.SetGravityDirection(Vector3.up); // 上（天井）
+            GravityManager.Instance.ChangeGravity(Vector3.up);
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            gravityBody.SetGravityDirection(Vector3.left); // 左の壁
+            GravityManager.Instance.ChangeGravity(Vector3.left);
         }
         else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            gravityBody.SetGravityDirection(Vector3.right); // 右の壁
+            GravityManager.Instance.ChangeGravity(Vector3.right);
         }
     }
 }
