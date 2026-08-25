@@ -5,7 +5,7 @@ public class GravityController : MonoBehaviour
     void Update()
     {
         if (GravityManager.Instance == null) return;
-
+        /*
         // 矢印キー入力で全体重力を変更
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
@@ -23,5 +23,6 @@ public class GravityController : MonoBehaviour
         {
             GravityManager.Instance.ChangeGravity(Vector3.right);
         }
+        */
     }
 }

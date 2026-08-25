@@ -1,3 +1,4 @@
+/*
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -36,6 +37,38 @@ public class PlayerMovement : MonoBehaviour
             // キー入力がない場合は接地面上の慣性を抑えてピタッと止める
             Vector3 currentMoveVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, transform.up);
             rb.AddForce(-currentMoveVelocity * 0.2f, ForceMode.VelocityChange);
+        }
+    }
+}
+*/
+
+using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 7f;
+    private Rigidbody rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+
+    private void Update()
+    {
+        // 入力の取得（左右・前後移動）
+        float moveX = Input.GetAxisRaw("Horizontal");
+        float moveZ = Input.GetAxisRaw("Vertical");
+
+        // 重力方向を基準にした移動ベクトルの計算
+        Vector3 gravityUp = -Physics.gravity.normalized;
+        Vector3 cameraForward = Vector3.Scale(Camera.main.transform.forward, new Vector3(1, 0, 1)).normalized;
+
+        // 簡易的な移動処理
+        Vector3 moveDir = new Vector3(moveX, 0f, moveZ).normalized;
+        if (moveDir.magnitude > 0.1f)
+        {
+            transform.Translate(moveDir * moveSpeed * Time.deltaTime, Space.World);
         }
     }
 }
