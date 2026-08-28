@@ -25,6 +25,7 @@ public class GravityManager : MonoBehaviour
     public void ChangeGravity(Vector3 newDirection)
     {
         currentGravityDirection = newDirection.normalized;
+        Physics.gravity = currentGravityDirection * 9.81f;
         OnGravityChanged?.Invoke(currentGravityDirection);
 
         // 重力切替時にカメラシェイクを実行

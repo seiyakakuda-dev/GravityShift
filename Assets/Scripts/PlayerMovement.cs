@@ -1,48 +1,4 @@
-/*
-using UnityEngine;
-
-[RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
-{
-    [Header("移動設定")]
-    [SerializeField] private float moveSpeed = 6f; // 移動速度
-
-    private Rigidbody rb;
-
-    void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-    }
-
-    void FixedUpdate()
-    {
-        // WASD入力の取得（W/S: 前後, A/D: 左右）
-        float inputX = Input.GetAxisRaw("Horizontal");
-        float inputZ = Input.GetAxisRaw("Vertical");
-
-        // プレイヤーの現在の回転（ローカル軸）を基準にした移動方向の計算
-        Vector3 moveDirection = (transform.right * inputX + transform.forward * inputZ).normalized;
-
-        if (moveDirection.magnitude > 0.1f)
-        {
-            // 重力方向への速度（落下速度）を維持しつつ、接地面上の移動速度を適用
-            Vector3 targetVelocity = moveDirection * moveSpeed;
-            Vector3 currentMoveVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, transform.up);
-            Vector3 velocityChange = targetVelocity - currentMoveVelocity;
-
-            rb.AddForce(velocityChange, ForceMode.VelocityChange);
-        }
-        else
-        {
-            // キー入力がない場合は接地面上の慣性を抑えてピタッと止める
-            Vector3 currentMoveVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, transform.up);
-            rb.AddForce(-currentMoveVelocity * 0.2f, ForceMode.VelocityChange);
-        }
-    }
-}
-*/
-
-using UnityEngine;
+/*using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
@@ -54,21 +10,81 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
+
     private void Update()
     {
-        // 入力の取得（左右・前後移動）
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveZ = Input.GetAxisRaw("Vertical");
 
-        // 重力方向を基準にした移動ベクトルの計算
         Vector3 gravityUp = -Physics.gravity.normalized;
-        Vector3 cameraForward = Vector3.Scale(Camera.main.transform.forward, new Vector3(1, 0, 1)).normalized;
+        Transform mainCam = Camera.main.transform;
 
-        // 簡易的な移動処理
-        Vector3 moveDir = new Vector3(moveX, 0f, moveZ).normalized;
+        // カメラの正面方向と右方向を、現在の重力平面に投影して取得
+        Vector3 camForward = Vector3.ProjectOnPlane(mainCam.forward, gravityUp).normalized;
+        Vector3 camRight = Vector3.ProjectOnPlane(mainCam.right, gravityUp).normalized;
+
+        // カメラの向き基準で移動方向を決定（これで前キー＝カメラの奥に進む）
+        Vector3 moveDir = (camForward * moveZ + camRight * moveX).normalized;
+
         if (moveDir.magnitude > 0.1f)
         {
             transform.Translate(moveDir * moveSpeed * Time.deltaTime, Space.World);
         }
+    }
+}*/
+
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerMovement : MonoBehaviour
+{
+    [SerializeField] private float moveSpeed = 7f;
+    [SerializeField] private float alignSpeed = 15f; // 重力方向に足を向ける回転速度
+
+    private Rigidbody rb;
+    private Vector2 inputVector;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        // 物理演算による勝手な回転を固定
+        rb.freezeRotation = true;
+    }
+
+    private void Update()
+    {
+        inputVector = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+    }
+
+    private void FixedUpdate()
+    {
+        // 1. GravityManager から正確な重力方向を取得
+        Vector3 gravityDir = Vector3.down;
+        if (GravityManager.Instance != null)
+        {
+            gravityDir = GravityManager.Instance.CurrentGravityDirection;
+        }
+        else
+        {
+            gravityDir = Physics.gravity.normalized;
+        }
+
+        Vector3 gravityUp = -gravityDir;
+
+        // 2. 体の足を重力方向（床）へ向ける回転計算
+        Quaternion targetRotation = Quaternion.FromToRotation(transform.up, gravityUp) * transform.rotation;
+        rb.MoveRotation(Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * alignSpeed));
+
+        // 3. カメラの向きを基準にした移動処理
+        Transform mainCam = Camera.main.transform;
+        Vector3 camForward = Vector3.ProjectOnPlane(mainCam.forward, gravityUp).normalized;
+        Vector3 camRight = Vector3.ProjectOnPlane(mainCam.right, gravityUp).normalized;
+        Vector3 moveDir = (camForward * inputVector.y + camRight * inputVector.x).normalized;
+
+        // 4. 重力方向の落下速度を保持したまま移動速度を付与
+        Vector3 currentGravityVelocity = Vector3.Project(rb.linearVelocity, gravityUp);
+        Vector3 targetMoveVelocity = moveDir * moveSpeed;
+
+        rb.linearVelocity = targetMoveVelocity + currentGravityVelocity;
     }
 }

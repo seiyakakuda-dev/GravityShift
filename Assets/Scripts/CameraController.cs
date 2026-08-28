@@ -3,44 +3,46 @@ using UnityEngine;
 public class CameraController : MonoBehaviour
 {
     [Header("追従対象")]
-    [SerializeField] private Transform target;
+    [SerializeField] private Transform target; // Playerをアタッチ
 
-    [Header("カメラオフセット")]
-    [SerializeField] private float distance = 8f;   // プレイヤーからの距離
-    [SerializeField] private float height = 4f;     // プレイヤーからの高さ
-    [SerializeField] private float smoothSpeed = 5f; // 重力変化時のカメラ回転スピード
+    [Header("カメラ位置調整")]
+    [SerializeField] private float distance = 8f;     // プレイヤーからの距離
+    [SerializeField] private float height = 3f;       // プレイヤーの頭上高さ
+    [SerializeField] private float smoothSpeed = 12f; // 追従・回転の滑らかさ
 
-    private float currentYaw = 0f;
+    private float targetYaw = 0f; // Q/Eキーでの回転角度
 
     private void Update()
     {
         if (target == null) return;
 
-        // Q / E キーでカメラを左右90度回転（死角対策）
-        if (Input.GetKeyDown(KeyCode.Q)) currentYaw -= 90f;
-        if (Input.GetKeyDown(KeyCode.E)) currentYaw += 90f;
+        // Q / E キーで視点を左右90度旋回
+        if (Input.GetKeyDown(KeyCode.Q)) targetYaw -= 90f;
+        if (Input.GetKeyDown(KeyCode.E)) targetYaw += 90f;
     }
 
     private void LateUpdate()
     {
         if (target == null) return;
 
-        // Unity標準の重力ベクトル（Physics.gravity）から「上方向」を動的に取得
+        // 1. 現在の重力に応じた「頭上（Up）」方向を取得
         Vector3 gravityUp = -Physics.gravity.normalized;
 
-        // 重力「上」を基準とした回転姿勢を作成
-        Quaternion gravityRotation = Quaternion.FromToRotation(Vector3.up, gravityUp);
-        Quaternion yawRotation = Quaternion.Euler(0f, currentYaw, 0f);
+        // 2. 重力「上」を基準とした回転と、Q/Eによる旋回（gravityUpを軸に回転）を作成
+        Quaternion gravityRot = Quaternion.FromToRotation(Vector3.up, gravityUp);
+        Quaternion yawRot = Quaternion.AngleAxis(targetYaw, gravityUp);
 
-        // カメラの目標位置を計算
-        Vector3 localOffset = new Vector3(0, height, -distance);
-        Vector3 targetPosition = target.position + (gravityRotation * yawRotation * localOffset);
+        // 3. プレイヤーの向きではなく「重力軸」基準でカメラの目標位置を計算
+        Vector3 baseOffset = new Vector3(0f, height, -distance);
+        Vector3 targetPosition = target.position + (yawRot * gravityRot * baseOffset);
 
-        // カメラの目標回転（プレイヤーを見下ろす視点）
-        Vector3 lookAtTarget = target.position + (gravityUp * 1.5f);
-        Quaternion targetRotation = Quaternion.LookRotation(lookAtTarget - targetPosition, gravityUp);
+        // 4. 注視点（プレイヤーの少し頭上）
+        Vector3 lookTarget = target.position + (gravityUp * 1.2f);
 
-        // 滑らかに位置と回転を移動
+        // 5. カメラの上方向を gravityUp に固定して回転を作成
+        Quaternion targetRotation = Quaternion.LookRotation(lookTarget - targetPosition, gravityUp);
+
+        // 6. 滑らかに位置と回転を更新
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * smoothSpeed);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * smoothSpeed);
     }
